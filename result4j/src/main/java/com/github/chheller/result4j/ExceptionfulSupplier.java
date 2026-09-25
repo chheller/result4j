@@ -17,25 +17,24 @@
  * #L%
  */
 
-package com.github.sviperll.result4j;
+package com.github.chheller.result4j;
 
 /**
- * Like {@link java.util.function.BiConsumer}, but throws checked exception.
+ * Like {@link java.util.function.Supplier}, but throws checked exception.
  * <p>
  * An explicit implementation of this interface is discouraged.
  * It is mainly used to specify the input parameter for the
- * {@link Catcher.ForBiConsumers#catching(ExceptionfulBiConsumer)} method.
+ * {@link Catcher.ForSuppliers#catching(ExceptionfulSupplier)} method.
  * It probably makes sense to introduce more specific extensions of this interface when
  * you need to frequently use the same exception type.
- * For instance, it probably makes sense to define {@code IOBiConsumer} interface,
+ * For instance, it probably makes sense to define {@code IOSupplier} interface,
  * if you need to frequently use {@code java.io.IOException}.
  *
- * @param <T> the first argument type of the function
- * @param <U> the second argument type of the function
- * @param <E> the exception thrown by the function
- * @see Catcher.ForBiConsumers#catching(ExceptionfulBiConsumer)
+ * @param <R> the type of supplied value
+ * @param <E> the exception thrown by the supplier
+ * @see Catcher.ForSuppliers#catching(ExceptionfulSupplier)
  */
 @FunctionalInterface
-public interface ExceptionfulBiConsumer<T, U, E extends Exception> {
-    void accept(T argument1, U argument2) throws E;
+public interface ExceptionfulSupplier<R, E extends Exception> {
+    R get() throws E;
 }

@@ -73,4 +73,5 @@
  *     Assertions.assertEquals(List.of(Animal.CAT, Animal.DOG), animals1);
  * }
  */
-package com.github.sviperll.result4j;
+package com.github.chheller.result4j;
+

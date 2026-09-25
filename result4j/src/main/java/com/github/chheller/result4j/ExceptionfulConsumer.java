@@ -17,7 +17,7 @@
  * #L%
  */
 
-package com.github.sviperll.result4j;
+package com.github.chheller.result4j;
 
 /**
  * Like {@link java.util.function.Consumer}, but throws checked exception.

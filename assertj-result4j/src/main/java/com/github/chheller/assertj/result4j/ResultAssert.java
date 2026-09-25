@@ -17,9 +17,9 @@
  * #L%
  */
 
-package com.github.sviperll.assertj.result4j;
+package com.github.chheller.assertj.result4j;
 
-import com.github.sviperll.result4j.Result;
+import com.github.chheller.result4j.Result;
 import org.assertj.core.api.AbstractAssert;
 import org.assertj.core.api.Assertions;
 import org.assertj.core.api.ObjectAssert;
@@ -31,23 +31,23 @@ import org.assertj.core.api.ObjectAssert;
  * statically import the {@link ResultAssert#assertThat(Result)} method and
  * use it together with the other variants provided by AssertJ.
  *
- * {@snippet lang="java":
+ * {@snippet lang = "java":
  *     // Standard AsserJ assertions:
  *     import static org.assertj.core.api.Assertions.assertThat;
  *
  *     // Assertions for the Result-values
- *     import static com.github.sviperll.assertj.result4j.ResultAssert.assertThat;
- * }
+ *
+ *}
  *
  * With the above static-imports, test-code may just use unqualified {@code assertThat}-calls.
  *
- * {@snippet lang="java":
- *     void myOperationSucceeds() {
+ * {@snippet lang = "java":
+ *     import com.github.chheller.result4j.Result;void myOperationSucceeds() {
  *         Result<String, Integer> result = myOperation();
  *
  *         assertThat(result).isSuccess();
  *     }
- * }
+ *}
  *
  * @param <R> type of successful result value.
  * @param <E> type representing error.

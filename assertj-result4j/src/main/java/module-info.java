@@ -17,21 +17,23 @@
  * #L%
  */
 
+import com.github.chheller.result4j.Result;
+
 /**
  * Module to be used in tests to write assertions
- * for the {@link com.github.sviperll.result4j.Result}-values in tests that use AssertJ.
+ * for the {@link Result}-values in tests that use AssertJ.
  * <p>
  * Most of the functionality is contained in
- * the {@link com.github.sviperll.assertj.result4j/com.github.sviperll.assertj.result4j}-package.
+ * the {@link com.github.chheller.assertj.result4j/com.github.chheller.assertj.result4j}-package.
  *
- * @see com.github.sviperll.assertj.result4j/com.github.sviperll.assertj.result4j
- * @see com.github.sviperll.result4j.Result
+ * @see com.github.chheller.assertj.result4j/com.github.chheller.assertj.result4j
+ * @see Result
  * @see <a href="https://assertj.github.io/doc/">AssertJ</a>
  * @since 1.2.0
  */
-module com.github.sviperll.assertj.result4j {
-    requires transitive com.github.sviperll.result4j;
+module com.github.chheller.assertj.result4j {
+    requires transitive com.github.chheller.result4j;
     requires transitive org.assertj.core;
 
-    exports com.github.sviperll.assertj.result4j;
+    exports com.github.chheller.assertj.result4j;
 }

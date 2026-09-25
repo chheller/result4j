@@ -17,7 +17,7 @@
  * #L%
  */
 
-package com.github.sviperll.result4j;
+package com.github.chheller.result4j;
 
 import java.util.Optional;
 import java.util.function.Consumer;

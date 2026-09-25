@@ -17,22 +17,16 @@
  * #L%
  */
 
-package com.github.sviperll.assertj.result4j;
+package com.github.chheller.result4j;
 
-import com.github.sviperll.result4j.AdaptingCatcher;
-import com.github.sviperll.result4j.Catcher;
-import com.github.sviperll.result4j.Result;
-import com.github.sviperll.result4j.ResultCollectors;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.List;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.assertj.core.api.InstanceOfAssertFactories;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-
-import static com.github.sviperll.assertj.result4j.ResultAssert.assertThat;
-import static org.assertj.core.api.InstanceOfAssertFactories.list;
 
 public class ResultCollectorsTest {
     @Test
@@ -43,29 +37,22 @@ public class ResultCollectorsTest {
                 Stream.of("123", "234", "xvxv", "456")
                         .map(numberFormat.catching(Integer::parseInt))
                         .collect(ResultCollectors.toSingleResult(Collectors.toList()));
-
-        assertThat(result)
-                .isError()
-                .hasErrorThat()
-                .asInstanceOf(InstanceOfAssertFactories.THROWABLE)
-                .isExactlyInstanceOf(NumberFormatException.class)
-                .hasMessage("For input string: \"xvxv\"");
+        Assertions.assertThrows(
+                NumberFormatException.class,
+                () -> result.orOnErrorThrow(Function.identity())
+        );
     }
 
     @Test
     public void nonAdaptedRuntimeExceptionSuccess() {
         Catcher.ForFunctions<NumberFormatException> numberFormat =
                 Catcher.of(NumberFormatException.class).forFunctions();
-        Result<List<Integer>, NumberFormatException> result =
+        List<Integer> result =
                 Stream.of("123", "234", "456")
                         .map(numberFormat.catching(Integer::parseInt))
-                        .collect(ResultCollectors.toSingleResult(Collectors.toList()));
-
-        assertThat(result)
-                .isSuccess()
-                .hasSuccessValueThat()
-                .asInstanceOf(list(Integer.class))
-                .containsExactlyInAnyOrderElementsOf(List.of(456, 234, 123));
+                        .collect(ResultCollectors.toSingleResult(Collectors.toList()))
+                        .orOnErrorThrow(Function.identity());
+        Assertions.assertEquals(List.of(123, 234, 456), result);
     }
 
     @Test
@@ -76,101 +63,85 @@ public class ResultCollectorsTest {
                 Stream.of("123", "234", "xvxv", "456")
                         .map(numberFormat.catching(Integer::parseInt))
                         .collect(ResultCollectors.toSingleResult(Collectors.toList()));
-
-        assertThat(result)
-                .isError()
-                .hasErrorThat()
-                .asInstanceOf(InstanceOfAssertFactories.THROWABLE)
-                .isExactlyInstanceOf(RuntimeException.class)
-                .cause()
-                .isExactlyInstanceOf(NumberFormatException.class)
-                .hasMessage("For input string: \"xvxv\"");
+        Assertions.assertThrows(
+                RuntimeException.class,
+                () -> result.orOnErrorThrow(Function.identity())
+        );
     }
 
     @Test
     public void adaptedRuntimeExceptionSuccess() {
         AdaptingCatcher.ForFunctions<NumberFormatException, RuntimeException> numberFormat =
                 Catcher.of(NumberFormatException.class).forFunctions().map(RuntimeException::new);
-        Result<List<Integer>, RuntimeException> result =
+        List<Integer> result =
                 Stream.of("123", "234", "456")
                         .map(numberFormat.catching(Integer::parseInt))
-                        .collect(ResultCollectors.toSingleResult(Collectors.toList()));
-
-        assertThat(result)
-                .isSuccess()
-                .hasSuccessValueThat()
-                .asInstanceOf(list(Integer.class))
-                .containsExactlyInAnyOrderElementsOf(List.of(123, 456, 234));
+                        .collect(ResultCollectors.toSingleResult(Collectors.toList()))
+                        .orOnErrorThrow(Function.identity());
+        Assertions.assertEquals(List.of(123, 234, 456), result);
     }
 
     @Test
-    public void multipleAdaptedCheckedExceptionsSuccess() {
+    public void multipleAdaptedCheckedExceptionsSuccess() throws PipelineException {
+        AdaptingCatcher.ForFunctions<IOException, PipelineException> io =
+                Catcher.of(IOException.class).map(PipelineException::new).forFunctions();
+        AdaptingCatcher.ForFunctions<MLException, PipelineException> ml =
+                Catcher.of(MLException.class).map(PipelineException::new).forFunctions();
+        List<Animal> animals1 =
+                List.of("cat.jpg", "dog.jpg")
+                        .stream()
+                        .map(io.catching(Fakes::readFile))
+                        .map(Result.flatMapping(ml.catching(Fakes::recognizeImage)))
+                        .collect(ResultCollectors.toSingleResult(Collectors.toList()))
+                        .orOnErrorThrow(Function.identity());
+        Assertions.assertEquals(List.of(Animal.CAT, Animal.DOG), animals1);
+    }
+
+    @Test
+    public void multipleAdaptedCheckedExceptionsFailure1() throws PipelineException {
         AdaptingCatcher.ForFunctions<IOException, PipelineException> io =
                 Catcher.of(IOException.class).map(PipelineException::new).forFunctions();
         AdaptingCatcher.ForFunctions<MLException, PipelineException> ml =
                 Catcher.of(MLException.class).map(PipelineException::new).forFunctions();
         Result<List<Animal>, PipelineException> animals =
-                Stream.of("cat.jpg", "dog.jpg")
-                        .map(io.catching(TestSystem::readFile))
-                        .map(Result.flatMapping(ml.catching(TestModel::recognizeImage)))
+                List.of("cat.jpg", "dog.jpg", "non-existent.jpg")
+                        .stream()
+                        .map(io.catching(Fakes::readFile))
+                        .map(Result.flatMapping(ml.catching(Fakes::recognizeImage)))
                         .collect(ResultCollectors.toSingleResult(Collectors.toList()));
-
-        assertThat(animals)
-                .isSuccess()
-                .hasSuccessValueThat()
-                .asInstanceOf(list(Animal.class))
-                .containsExactlyInAnyOrderElementsOf(List.of(Animal.CAT, Animal.DOG));
+        PipelineException exception =
+                Assertions.assertThrows(
+                        PipelineException.class,
+                        () -> animals.orOnErrorThrow(Function.identity())
+                );
+        Assertions.assertInstanceOf(IOException.class, exception.getCause());
     }
 
     @Test
-    public void multipleAdaptedCheckedExceptionsFailure1() {
+    public void multipleAdaptedCheckedExceptionsFailure2() throws PipelineException {
         AdaptingCatcher.ForFunctions<IOException, PipelineException> io =
                 Catcher.of(IOException.class).map(PipelineException::new).forFunctions();
         AdaptingCatcher.ForFunctions<MLException, PipelineException> ml =
                 Catcher.of(MLException.class).map(PipelineException::new).forFunctions();
         Result<List<Animal>, PipelineException> animals =
-                Stream.of("cat.jpg", "dog.jpg", "non-existent.jpg")
-                        .map(io.catching(TestSystem::readFile))
-                        .map(Result.flatMapping(ml.catching(TestModel::recognizeImage)))
+                List.of("cat.jpg", "dog.jpg", "corrupted.jpg")
+                        .stream()
+                        .map(io.catching(Fakes::readFile))
+                        .map(Result.flatMapping(ml.catching(Fakes::recognizeImage)))
                         .collect(ResultCollectors.toSingleResult(Collectors.toList()));
-
-
-        assertThat(animals)
-                .isError()
-                .hasErrorThat()
-                .asInstanceOf(InstanceOfAssertFactories.THROWABLE)
-                .isExactlyInstanceOf(PipelineException.class)
-                .cause()
-                .isInstanceOf(IOException.class)
-                .hasMessage("non-existent.jpg: not found");
-    }
-
-    @Test
-    public void multipleAdaptedCheckedExceptionsFailure2() {
-        AdaptingCatcher.ForFunctions<IOException, PipelineException> io =
-                Catcher.of(IOException.class).map(PipelineException::new).forFunctions();
-        AdaptingCatcher.ForFunctions<MLException, PipelineException> ml =
-                Catcher.of(MLException.class).map(PipelineException::new).forFunctions();
-        Result<List<Animal>, PipelineException> animals =
-                Stream.of("cat.jpg", "dog.jpg", "corrupted.jpg")
-                        .map(io.catching(TestSystem::readFile))
-                        .map(Result.flatMapping(ml.catching(TestModel::recognizeImage)))
-                        .collect(ResultCollectors.toSingleResult(Collectors.toList()));
-
-        assertThat(animals)
-                .isError()
-                .hasErrorThat()
-                .asInstanceOf(InstanceOfAssertFactories.THROWABLE)
-                .isExactlyInstanceOf(PipelineException.class)
-                .cause()
-                .isExactlyInstanceOf(MLException.class);
+        PipelineException exception =
+                Assertions.assertThrows(
+                        PipelineException.class,
+                        () -> animals.orOnErrorThrow(Function.identity())
+                );
+        Assertions.assertInstanceOf(MLException.class, exception.getCause());
     }
 
     enum Animal {
         DOG, CAT
     }
 
-    static class TestSystem {
+    static class Fakes {
         static String readFile(String name) throws IOException {
             return switch (name) {
                 case "cat.jpg" -> "cat-image";
@@ -179,9 +150,7 @@ public class ResultCollectorsTest {
                 default -> throw new FileNotFoundException("%s: not found".formatted(name));
             };
         }
-    }
 
-    static class TestModel {
         static Animal recognizeImage(String imageData) throws MLException {
             return switch (imageData) {
                 case "cat-image" -> Animal.CAT;

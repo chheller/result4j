@@ -17,7 +17,7 @@
  * #L%
  */
 
-package com.github.sviperll.result4j;
+package com.github.chheller.result4j;
 
 import java.util.function.BiConsumer;
 import java.util.function.BinaryOperator;

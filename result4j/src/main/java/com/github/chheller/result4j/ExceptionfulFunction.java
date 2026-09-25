@@ -17,23 +17,37 @@
  * #L%
  */
 
-package com.github.sviperll.result4j;
+package com.github.chheller.result4j;
 
 /**
- * Like {@link java.lang.Runnable}, but throws checked exception.
+ * Like {@link java.util.function.Function}, but throws checked exception.
  * <p>
  * An explicit implementation of this interface is discouraged.
  * It is mainly used to specify the input parameter for the
- * {@link Catcher.ForRunnables#catching(ExceptionfulRunnable)} method.
+ * {@link Catcher.ForFunctions#catching(ExceptionfulFunction)} method.
  * It probably makes sense to introduce more specific extensions of this interface when
  * you need to frequently use the same exception type.
- * For instance, it probably makes sense to define {@code IORunnable} interface,
+ * For instance, it probably makes sense to define {@code IOFunction} interface,
  * if you need to frequently use {@code java.io.IOException}.
  *
- * @param <E> the exception thrown by runnable
- * @see Catcher.ForRunnables#catching(ExceptionfulRunnable)
+ * @param <T> the argument of the function
+ * @param <R> the result of the function
+ * @param <E> the exception thrown by the function
+ * @see Catcher.ForFunctions#catching(ExceptionfulFunction)
  */
 @FunctionalInterface
-public interface ExceptionfulRunnable<E extends Exception> {
-    void run() throws E;
+public interface ExceptionfulFunction<T, R, E extends Throwable> {
+    R apply(T argument) throws E;
+
+    default <S> ExceptionfulFunction<T, S, E> andThen(
+            ExceptionfulFunction<? super R, ? extends S, ? extends E> after
+    ) {
+        return argument -> after.apply(apply(argument));
+    }
+
+    default <U> ExceptionfulFunction<U, R, E> compose(
+            ExceptionfulFunction<? super U, ? extends T, ? extends E> before
+    ) {
+        return argument -> apply(before.apply(argument));
+    }
 }
