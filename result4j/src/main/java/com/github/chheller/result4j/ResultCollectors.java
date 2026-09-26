@@ -19,11 +19,45 @@
 
 package com.github.chheller.result4j;
 
+import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.BinaryOperator;
 import java.util.stream.Collector;
+import java.util.stream.Collectors;
 
 public final class ResultCollectors {
+    /**
+     * Splits a stream of results into successful values and error-values.
+     * <p>
+     * Unlike {@link #toSingleResult(Collector)}, this collector never short-circuits:
+     * every result ends up in exactly one of the two downstream collectors.
+     * The outcome is a typed {@link Result.Partitioned} rather than a {@code Map<Boolean, ...>}.
+     *
+     * @param okCollector collector for successful values
+     * @param errCollector collector for error-values
+     * @param <OkVal> type of successful result value
+     * @param <ErrVal> type representing error-value
+     * @param <OkR> type of the collected successful values
+     * @param <ErrR> type of the collected error-values
+     */
+    public static <OkVal, ErrVal, OkR, ErrR>
+    Collector<Result<OkVal, ErrVal>, ?, Result.Partitioned<OkR, ErrR>> partitioning(
+            Collector<? super OkVal, ?, OkR> okCollector,
+            Collector<? super ErrVal, ?, ErrR> errCollector
+    ) {
+        return Collectors.teeing(
+                Collectors.flatMapping(Result.<OkVal, ErrVal>oks(), okCollector),
+                Collectors.flatMapping(Result.<OkVal, ErrVal>errs(), errCollector),
+                Result.Partitioned::new
+        );
+    }
+
+    /** Splits a stream of results into a list of successful values and a list of error-values. */
+    public static <OkVal, ErrVal>
+    Collector<Result<OkVal, ErrVal>, ?, Result.Partitioned<List<OkVal>, List<ErrVal>>> partitioning() {
+        return partitioning(Collectors.toList(), Collectors.toList());
+    }
+
     public static <T, R, E> Collector<Result<T, E>, ?, Result<R, E>> toSingleResult(
             Collector<? super T, ?, R> collector
     ) {

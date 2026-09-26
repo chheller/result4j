@@ -29,6 +29,9 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 public class ResultCollectorsTest {
+    private static final List<Result<Integer, String>> MIXED =
+            List.of(Result.ok(1), Result.err("a"), Result.ok(2), Result.err("b"));
+
     @Test
     public void nonAdaptedRuntimeExceptionFailure() {
         Catcher.ForFunctions<NumberFormatException> numberFormat =
@@ -173,5 +176,104 @@ public class ResultCollectorsTest {
         PipelineException(MLException ex) {
             super(ex);
         }
+    }
+
+    @Test
+    public void partitioningSplitsOksAndErrs() {
+        Result.Partitioned<List<Integer>, List<String>> parts =
+                MIXED.stream()
+                        .collect(ResultCollectors.partitioning());
+        Assertions.assertEquals(List.of(1, 2), parts.oks());
+        Assertions.assertEquals(List.of("a", "b"), parts.errs());
+    }
+
+    @Test
+    public void partitioningWithDownstreamCollectors() {
+        Result.Partitioned<Long, String> parts =
+                MIXED.stream()
+                        .collect(ResultCollectors.partitioning(
+                                Collectors.counting(),
+                                Collectors.joining(",")
+                        ));
+        Assertions.assertEquals(2L, parts.oks());
+        Assertions.assertEquals("a,b", parts.errs());
+    }
+
+    @Test
+    public void oksAndErrsExtractors() {
+        List<Result<Integer, String>> results = List.of(Result.ok(1), Result.err("a"), Result.ok(2));
+        Assertions.assertEquals(List.of(1, 2), results.stream().flatMap(Result.oks()).toList());
+        Assertions.assertEquals(List.of("a"), results.stream().flatMap(Result.errs()).toList());
+    }
+
+    @Test
+    public void recoveringAndBimapping() {
+        List<Result<Integer, String>> results = List.of(Result.ok(1), Result.err("abc"));
+        Assertions.assertEquals(
+                List.of(1, 3),
+                results.stream().map(Result.recovering(String::length)).toList()
+        );
+        Assertions.assertEquals(
+                List.of(Result.ok("1"), Result.err(3)),
+                results.stream().map(Result.<Integer, String, String, Integer>bimapping(
+                        String::valueOf,
+                        String::length
+                )).toList()
+        );
+    }
+
+    @Test
+    public void kleisliShortCircuits() {
+        Function<String, Result<Integer, String>> parse = s -> s.isEmpty()
+                ? Result.err("empty")
+                : Result.ok(s.length());
+        Function<Integer, Result<Integer, String>> atLeastThree = n -> n >= 3
+                ? Result.ok(n)
+                : Result.err("short");
+        Function<String, Result<Integer, String>> both = Result.kleisli(parse, atLeastThree);
+        Assertions.assertEquals(Result.ok(3), both.apply("abc"));
+        Assertions.assertEquals(Result.err("short"), both.apply("a"));
+        Assertions.assertEquals(Result.err("empty"), both.apply(""));
+    }
+
+    @Test
+    public void bimapTransformsBothSides() {
+        Result<Integer, String> ok = Result.ok(2);
+        Result<Integer, String> err = Result.err("abc");
+        Assertions.assertEquals(Result.ok("2"), ok.bimap(String::valueOf, String::length));
+        Assertions.assertEquals(Result.err(3), err.bimap(String::valueOf, String::length));
+    }
+
+    @Test
+    public void thenCombineTwo() {
+        Result<Integer, String> one = Result.ok(1);
+        Result<Integer, String> two = Result.ok(2);
+        Result<Integer, String> errA = Result.err("a");
+        Result<Integer, String> errB = Result.err("b");
+        Assertions.assertEquals(Result.ok(3), one.thenCombine(two, Integer::sum));
+        Assertions.assertEquals(Result.err("a"), errA.thenCombine(two, Integer::sum));
+        Assertions.assertEquals(Result.err("b"), one.thenCombine(errB, Integer::sum));
+        Assertions.assertEquals(Result.err("a"), errA.thenCombine(errB, Integer::sum));
+    }
+
+    @Test
+    public void thenCombineThree() {
+        Result<Integer, String> one = Result.ok(1);
+        Result<Integer, String> two = Result.ok(2);
+        Result<Integer, String> three = Result.ok(3);
+        Result<Integer, String> errB = Result.err("b");
+        Result<Integer, String> errC = Result.err("c");
+        Assertions.assertEquals(
+                Result.ok("1-2-3"),
+                one.thenCombine(two, three, (a, b, c) -> a + "-" + b + "-" + c)
+        );
+        Assertions.assertEquals(
+                Result.err("b"),
+                one.thenCombine(errB, errC, (a, b, c) -> a + b + c)
+        );
+        Assertions.assertEquals(
+                Result.err("c"),
+                one.thenCombine(two, errC, (a, b, c) -> a + b + c)
+        );
     }
 }

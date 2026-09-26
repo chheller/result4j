@@ -20,8 +20,11 @@
 package com.github.chheller.result4j;
 
 import java.util.Optional;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.stream.Stream;
+import com.github.chheller.result4j.function.TriFunction;
 
 /**
  * A result that is either a successful execution with the value or a failure with the error-value.
@@ -237,6 +240,117 @@ public sealed interface Result<OkVal, ErrVal> {
     }
 
     /**
+     * Produces function-object that transforms both values of successful results and
+     * error-values of failed results.
+     * <p>
+     * Point-free counterpart of {@code result.map(okTransformation).mapError(errTransformation)}.
+     *
+     * @param okTransformation transformation to be applied to a value of a successful result
+     * @param errTransformation transformation to be applied to an error-value
+     * @param <InOk> type of successful input result value
+     * @param <OutOk> type of successful output result value
+     * @param <InErr> type representing error-value associated with input
+     * @param <OutErr> type representing error-value associated with output
+     * @see Result#map(Function)
+     * @see Result#mapError(Function)
+     */
+    static <InOk, OutOk, InErr, OutErr> Function<Result<InOk, InErr>, Result<OutOk, OutErr>> bimapping(
+            Function<? super InOk, ? extends OutOk> okTransformation,
+            Function<? super InErr, ? extends OutErr> errTransformation
+    ) {
+        return result1 -> result1.bimap(okTransformation, errTransformation);
+    }
+
+    /**
+     * Produces function-object that recovers from errors of results.
+     * <p>
+     * Point-free counterpart of {@link Result#recoverError(Function)}.
+     *
+     * {@snippet lang = "java":
+     *     List<Result<OkVal, E>> results = ...;
+     *     List<OkVal> values = results.stream()
+     *         .map(Result.recovering(e -> fallback(e)))
+     *         .toList();
+     *}
+     *
+     * @param transformation transformation producing a value from an error-value
+     * @param <OkVal> type of successful result value
+     * @param <ErrVal> type representing error-value
+     * @see Result#recoverError(Function)
+     */
+    static <OkVal, ErrVal> Function<Result<OkVal, ErrVal>, OkVal> recovering(
+            Function<? super ErrVal, ? extends OkVal> transformation
+    ) {
+        return result1 -> result1.recoverError(transformation);
+    }
+
+    /**
+     * Composes two partial functions into a single one.
+     * <p>
+     * The resulting function applies {@code first} and, when that succeeds,
+     * applies {@code second} to the successful value.
+     * The first error short-circuits the composition.
+     *
+     * {@snippet lang = "java":
+     *     Function<String, Result<Config, E>> load = Result.kleisli(this::read, this::parse);
+     *}
+     *
+     * @param first the function to apply first
+     * @param second the function to apply to the successful result of {@code first}
+     * @param <In> type of input
+     * @param <Mid> type of the intermediate successful value
+     * @param <OutOk> type of the final successful value
+     * @param <ErrVal> type representing error-value
+     * @see Result#flatMap(Function)
+     */
+    static <In, Mid, OutOk, ErrVal> Function<In, Result<OutOk, ErrVal>> kleisli(
+            Function<? super In, ? extends Result<Mid, ErrVal>> first,
+            Function<? super Mid, ? extends Result<OutOk, ErrVal>> second
+    ) {
+        return input -> first.apply(input).flatMap(second);
+    }
+
+    /**
+     * Produces function-object that turns a result into a stream of at most one successful value.
+     * <p>
+     * Meant to be used with {@link java.util.stream.Stream#flatMap} to keep only successful values.
+     *
+     * {@snippet lang = "java":
+     *     List<OkVal> values = results.stream().flatMap(Result.oks()).toList();
+     *}
+     *
+     * @param <OkVal> type of successful result value
+     * @param <ErrVal> type representing error-value
+     * @see Result#errs()
+     */
+    static <OkVal, ErrVal> Function<Result<OkVal, ErrVal>, Stream<OkVal>> oks() {
+        return result1 -> switch (result1) {
+            case Result.Ok<OkVal, ErrVal>(var value) -> Stream.of(value);
+            case Result.Err<OkVal, ErrVal> err -> Stream.empty();
+        };
+    }
+
+    /**
+     * Produces function-object that turns a result into a stream of at most one error-value.
+     * <p>
+     * Meant to be used with {@link java.util.stream.Stream#flatMap} to keep only error-values.
+     *
+     * {@snippet lang = "java":
+     *     List<E> errors = results.stream().flatMap(Result.errs()).toList();
+     *}
+     *
+     * @param <OkVal> type of successful result value
+     * @param <ErrVal> type representing error-value
+     * @see Result#oks()
+     */
+    static <OkVal, ErrVal> Function<Result<OkVal, ErrVal>, Stream<ErrVal>> errs() {
+        return result1 -> switch (result1) {
+            case Result.Ok<OkVal, ErrVal> ok -> Stream.empty();
+            case Result.Err<OkVal, ErrVal>(var error) -> Stream.of(error);
+        };
+    }
+
+    /**
      * Produces {@code Result}-value containing given successful result value.
      *
      * @param <OkVal> type of successful result value
@@ -244,7 +358,7 @@ public sealed interface Result<OkVal, ErrVal> {
      * @param result successful result value
      * @return {@code Result}-value containing given successful result value
      */
-    static <ErrVal, OkVal> Result<OkVal, ErrVal> ok(OkVal result) {
+    static <OkVal, ErrVal> Result<OkVal, ErrVal> ok(OkVal result) {
         return new Result.Ok<>(result);
     }
 
@@ -430,6 +544,85 @@ public sealed interface Result<OkVal, ErrVal> {
             case Result.Ok(var result) -> result;
             case Result.Err<?, ErrVal> err -> err.safeCast();
         };
+    }
+
+    /**
+     * Transforms both the value of a successful result and the error-value of a failed one.
+     * <p>
+     * Equivalent to {@code map(okTransformation).mapError(errTransformation)}.
+     *
+     * @param okTransformation transformation to be applied to a successful value
+     * @param errTransformation transformation to be applied to an error-value
+     * @param <OutOk> new type of successful result value
+     * @param <OutErr> new type of error-value
+     * @see Result#bimapping(Function, Function)
+     */
+    default <OutOk, OutErr> Result<OutOk, OutErr> bimap(
+            Function<? super OkVal, ? extends OutOk> okTransformation,
+            Function<? super ErrVal, ? extends OutErr> errTransformation
+    ) {
+        return this.<OutOk>map(okTransformation).mapError(errTransformation);
+    }
+
+    /**
+     * Combines this result with another one.
+     * <ul>
+     *   <li>When both results are successful, the result is a success
+     *   holding the outcome of {@code combiner}.
+     *   <li>Otherwise the result is the first error, checking this result before {@code other}.
+     * </ul>
+     *
+     * @param other result to combine with
+     * @param combiner function combining both successful values
+     * @param <OtherOk> type of successful value of {@code other}
+     * @param <OutOk> type of successful value of the combined result
+     */
+    default <OtherOk, OutOk> Result<OutOk, ErrVal> thenCombine(
+            Result<OtherOk, ErrVal> other,
+            BiFunction<? super OkVal, ? super OtherOk, ? extends OutOk> combiner
+    ) {
+        return this.<OutOk>flatMap(
+                a -> other.<OutOk>map(b -> combiner.apply(a, b))
+        );
+    }
+
+    /**
+     * Combines this result with two other ones.
+     * <ul>
+     *   <li>When all three results are successful, the result is a success
+     *   holding the outcome of {@code combiner}.
+     *   <li>Otherwise the result is the first error, checking this result,
+     *   then {@code second}, then {@code third}.
+     * </ul>
+     *
+     * @param second second result to combine with
+     * @param third third result to combine with
+     * @param combiner function combining all three successful values
+     * @param <SecondOk> type of successful value of {@code second}
+     * @param <ThirdOk> type of successful value of {@code third}
+     * @param <OutOk> type of successful value of the combined result
+     */
+    default <SecondOk, ThirdOk, OutOk> Result<OutOk, ErrVal> thenCombine(
+            Result<SecondOk, ErrVal> second,
+            Result<ThirdOk, ErrVal> third,
+            TriFunction<? super OkVal, ? super SecondOk, ? super ThirdOk, ? extends OutOk> combiner
+    ) {
+        return this.<OutOk>flatMap(
+                a -> second.<OutOk>flatMap(
+                        b -> third.<OutOk>map(c -> combiner.apply(a, b, c))
+                )
+        );
+    }
+
+    /**
+     * Outcome of partitioning results, see {@link ResultCollectors#partitioning()}.
+     *
+     * @param oks the collected successful values
+     * @param errs the collected error-values
+     * @param <OkR> type of the collected successful values
+     * @param <ErrR> type of the collected error-values
+     */
+    record Partitioned<OkR, ErrR>(OkR oks, ErrR errs) {
     }
 
     record Ok<OkVal, ErrVal>(OkVal result) implements Result<OkVal, ErrVal> {

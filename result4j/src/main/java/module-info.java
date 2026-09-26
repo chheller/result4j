@@ -34,4 +34,5 @@
  */
 module com.github.chheller.result4j {
     exports com.github.chheller.result4j;
+    exports com.github.chheller.result4j.function;
 }
