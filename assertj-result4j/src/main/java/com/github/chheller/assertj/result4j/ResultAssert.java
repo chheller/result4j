@@ -166,7 +166,7 @@ public class ResultAssert<R, E> extends AbstractAssert<ResultAssert<R, E>, Resul
      */
     public ObjectAssert<E> hasErrorThat() {
         isNotNull();
-        if (!(actual instanceof Result.Error(E error))) {
+        if (!(actual instanceof Result.Err(E error))) {
             throw failure("Expected Result to be Error, but was Success");
         }
         return Assertions.assertThat(error);
@@ -211,7 +211,7 @@ public class ResultAssert<R, E> extends AbstractAssert<ResultAssert<R, E>, Resul
      */
     public ObjectAssert<R> hasSuccessValueThat() {
         isNotNull();
-        if (!(actual instanceof Result.Success(R value))) {
+        if (!(actual instanceof Result.Ok(R value))) {
             throw failure("Expected Result to be Success, but was Error");
         }
         return Assertions.assertThat(value);

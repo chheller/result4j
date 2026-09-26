@@ -41,23 +41,23 @@ import java.util.function.Function;
  * Enclosed successful value or error value can be of different types,
  * represented by generic type-parameters.
  * <p>
- * The {@link Result#success(Object)} and {@link Result#error(Object)} methods
+ * The {@link Result#ok(Object)} and {@link Result#err(Object)} methods
  * create a new Result-value, that is respectively either a successful result or an error.
  *
- * {@snippet lang="java" :
- *     Result<String, E> suc = Result.success("Hello, World!");
- * }
+ * {@snippet lang = "java":
+ *     Result<String, Object> suc = Result.ok("Hello, World!");
+ *}
  * <p>
  * The above line declares successful result value.
  *
- * {@snippet lang="java" :
- *     Result<String, Integer> err = Result.error(404);
- * }
+ * {@snippet lang = "java":
+ *     Result<Object, Integer> err = Result.err(404);
+ *}
  * <p>
  * The above line declares error-value.
  *
  * <p>
- * The {@link Result.Success} and {@link Result.Error} records are
+ * The {@link Result.Ok} and {@link Result.Err} records are
  * subtypes of the {@code Result}-type and allow to use pattern matching to distinguish between
  * a successful result and an error
  *
@@ -84,7 +84,7 @@ import java.util.function.Function;
  * <p>
  * Instead of a low-level pattern-matching,
  * higher level helper-methods are available in {@code Result}-class.
- * In the snippet above {@link Result#orOnErrorThrow(Function)} is used to throw exception when
+ * In the snippet above {@link Result#orElseThrow(Function)} is used to throw exception when
  * {@code Result} contains error.
  *
  * {@snippet lang="java" :
@@ -106,12 +106,12 @@ import java.util.function.Function;
  * {@link Catcher} class allows to adapt exception-throwing methods to
  * return {@code Result}-type instead.
  *
- * @param <R> type of successful result value
- * @param <E> type representing error
+ * @param <OkVal> type of successful result value
+ * @param <ErrVal> type representing error
  * @see Catcher
  * @see ResultCollectors
  */
-public sealed interface Result<R, E> {
+public sealed interface Result<OkVal, ErrVal> {
     /**
      * Produces function-object that transforms error-values of results.
      * <p>
@@ -126,7 +126,7 @@ public sealed interface Result<R, E> {
      * This method can be used to make multi-level transformation easier to read.
      *
      * {@snippet lang="java" :
-     *     List<Result<R, E>> results = ...;
+     *     List<Result<OkVal, E>> results = ...;
      *     results.stream()
      *         .map(result -> result.mapError(e -> transform(e)))
      *         ...
@@ -135,20 +135,20 @@ public sealed interface Result<R, E> {
      * Instead of the above code, one can write
      *
      * {@snippet lang="java" :
-     *     List<Result<R, E>> results = ...;
+     *     List<Result<OkVal, E>> results = ...;
      *     results.stream()
      *         .map(Result.errorMapping(e -> transform(e)))
      *         ...
      * }
      *
      * @param transformation transformation to be applied to error-values
-     * @param <R> type of successful result value
-     * @param <E1> type representing error-value associated with input
-     * @param <E2> type representing error-value associated with output
+     * @param <OkVal> type of successful result value
+     * @param <InErr> type representing error-value associated with input
+     * @param <OutErr> type representing error-value associated with output
      * @see Result#mapError(Function)
      */
-    static <R, E1, E2> Function<Result<R, E1>, Result<R, E2>> errorMapping(
-            Function<? super E1, ? extends E2> transformation
+    static <OkVal, InErr, OutErr> Function<Result<OkVal, InErr>, Result<OkVal, OutErr>> errorMapping(
+            Function<? super InErr, ? extends OutErr> transformation
     ) {
         return result1 -> result1.mapError(transformation);
     }
@@ -166,30 +166,30 @@ public sealed interface Result<R, E> {
      * <p>
      * This method can be used to make multi-level transformation easier to read.
      *
-     * {@snippet lang="java" :
-     *     List<Result<R, E>> results = ...;
+     * {@snippet lang = "java":
+     *     List<Result<OutOk, ErrVal>> results = ...;
      *     results.stream()
      *         .map(result -> result.map(value -> transform(value)))
      *         ...
-     * }
+     *}
      * <p>
      * Instead of the above code, one can write
      *
-     * {@snippet lang="java" :
-     *     List<Result<R, E>> results = ...;
+     * {@snippet lang = "java":
+     *     List<Result<OutOk, ErrVal>> results = ...;
      *     results.stream()
      *         .map(Result.mapping(e -> transform(e)))
      *         ...
-     * }
+     *}
      *
      * @param transformation transformation to be applied to a value of a successful result
-     * @param <T> type of successful input result value
-     * @param <R> type of successful output result value
-     * @param <E> type representing error-value
+     * @param <InOk> type of successful input result value
+     * @param <OutOk> type of successful output result value
+     * @param <ErrVal> type representing error-value
      * @see Result#map(Function)
      */
-    static <T, R, E> Function<Result<T, E>, Result<R, E>> mapping(
-            Function<? super T, ? extends R> transformation
+    static <InOk, OutOk, ErrVal> Function<Result<InOk, ErrVal>, Result<OutOk, ErrVal>> mapping(
+            Function<? super InOk, ? extends OutOk> transformation
     ) {
         return result1 -> result1.map(transformation);
     }
@@ -208,30 +208,30 @@ public sealed interface Result<R, E> {
      * <p>
      * This method can be used to make multi-level transformation easier to read.
      *
-     * {@snippet lang="java" :
-     *     List<Result<R, E>> results = ...;
+     * {@snippet lang = "java":
+     *     List<Result<OutOk, E>> results = ...;
      *     results.stream()
      *         .map(result -> result.flatMap(value -> actOn(value)))
      *         ...
-     * }
+     *}
      * <p>
      * Instead of the above code, one can write
      *
-     * {@snippet lang="java" :
-     *     List<Result<R, E>> results = ...;
+     * {@snippet lang = "java":
+     *     List<Result<OutOk, E>> results = ...;
      *     results.stream()
      *         .map(Result.flatMapping(e -> actOn(e)))
      *         ...
-     * }
+     *}
      *
      * @param transformation transformation to be applied to a value of a successful result
-     * @param <T> type of successful input result value
-     * @param <R> type of successful output result value
-     * @param <E> type representing error-value
+     * @param <InOk> type of successful input result value
+     * @param <OutOk> type of successful output result value
+     * @param <ErrVal> type representing error-value
      * @see Result#mapError(Function)
      */
-    static <T, R, E> Function<Result<T, E>, Result<R, E>> flatMapping(
-            Function<? super T, ? extends Result<R, E>> transformation
+    static <InOk, OutOk, ErrVal> Function<Result<InOk, ErrVal>, Result<OutOk, ErrVal>> flatMapping(
+            Function<? super InOk, ? extends Result<OutOk, ErrVal>> transformation
     ) {
         return result1 -> result1.flatMap(transformation);
     }
@@ -239,25 +239,25 @@ public sealed interface Result<R, E> {
     /**
      * Produces {@code Result}-value containing given successful result value.
      *
-     * @param <R> type of successful result value
-     * @param <E> type representing error-value
+     * @param <OkVal> type of successful result value
+     * @param <ErrVal> type representing error-value
      * @param result successful result value
      * @return {@code Result}-value containing given successful result value
      */
-    static <R, E> Result<R, E> success(R result) {
-        return new Success<>(result);
+    static <ErrVal, OkVal> Result<OkVal, ErrVal> ok(OkVal result) {
+        return new Result.Ok<>(result);
     }
 
     /**
      * Produces {@code Result}-value containing given error value.
      *
-     * @param <R> type of successful result value
-     * @param <E> type representing error-value
+     * @param <OkVal> type of successful result value
+     * @param <ErrVal> type representing error-value
      * @param error error value
      * @return {@code Result}-value containing given error value
      */
-    static <R, E> Result<R, E> error(E error) {
-        return new Error<>(error);
+    static <OkVal, ErrVal> Result<OkVal, ErrVal> err(ErrVal error) {
+        return new Result.Err<>(error);
     }
 
     /**
@@ -277,16 +277,16 @@ public sealed interface Result<R, E> {
      *   method result is a successful result with {@link Optional#empty()} value.
      * </ul>
      *
-     * @param <R> type of successful result value
-     * @param <E> type representing error-value
+     * @param <OkVal> type of successful result value
+     * @param <ErrVal> type representing error-value
      * @param value {@code Optional}-value containing {@code Result}-value
      * @return {@code Result}-value with {@code Optional} successful result value.
      */
-    static <R, E> Result<Optional<R>, E> fromOptionalResult(
-            Optional<Result<R, E>> value
+    static <OkVal, ErrVal> Result<Optional<OkVal>, ErrVal> fromOptionalResult(
+            Optional<Result<OkVal, ErrVal>> value
     ) {
         return value.map(Result.mapping(Optional::of))
-                .orElseGet(() -> Result.success(Optional.empty()));
+                .orElseGet(() -> Result.ok(Optional.empty()));
     }
 
     /**
@@ -301,36 +301,23 @@ public sealed interface Result<R, E> {
      *   provided as an argument to this method.
      * </ul>
      *
-     * @param <R> type of successful result value
-     * @param <E> type representing error-value
+     * @param <OkVal> type of successful result value
+     * @param <ErrVal> type representing error-value
      * @param optional {@code Optional}-value
      * @param error error value
      * @return {@code Result}-value with {@code Optional} successful result value,
      *      or given error value.
      */
-    static <R, E> Result<R, E> fromOptional(Optional<R> optional, E error) {
-        Optional<Result<R, E>> optionalResult = optional.map(Result::success);
-        return optionalResult.orElse(Result.error(error));
+    static <OkVal, ErrVal> Result<OkVal, ErrVal> fromOptional(Optional<OkVal> optional, ErrVal error) {
+        Optional<Result<OkVal, ErrVal>> optionalResult = optional.map(Result::ok);
+        return optionalResult.orElse(Result.err(error));
     }
 
     /** Checks that this value is an error. */
-    boolean isError();
+    boolean isErr();
 
-    /**
-     * Combines this result with another one.
-     * <ul>
-     *   <li>When this result is an error, then
-     *   the result of this method is an error, with the same error-value,
-     *   irrespective of the provided argument.
-     *   <li>When this result is a success, then
-     *   the result of this method is exactly the same as provided argument.
-     * </ul>
-     *
-     * @param <U> type of successful result of a successor
-     * @param result successor result
-     */
-    <U> Result<U, E> andThen(Result<U, E> result);
-
+    /** Checks that this value is Ok */
+    boolean isOk();
     /**
      * Transforms a value of this result, when this is a successful result.
      * <p>
@@ -343,10 +330,10 @@ public sealed interface Result<R, E> {
      *   the result of this method a new result with transformed value.
      * </ul>
      *
-     * @param <U> new type of successful result value
+     * @param <OutOk> new type of successful result value
      * @param transformation transformation to be applied to values
      */
-    <U> Result<U, E> map(Function<? super R, ? extends U> transformation);
+    <OutOk> Result<OutOk, ErrVal> map(Function<? super OkVal, ? extends OutOk> transformation);
 
     /**
      * Transforms an error-value of this result, when this is an error.
@@ -360,15 +347,15 @@ public sealed interface Result<R, E> {
      *   the result of this method the same successful result with the same value.
      * </ul>
      *
-     * @param <E1> new type of error-value
+     * @param <OutErr> new type of error-value
      * @param transformation transformation to be applied to error-values
      */
-    <E1> Result<R, E1> mapError(Function<? super E, ? extends E1> transformation);
+    <OutErr> Result<OkVal, OutErr> mapError(Function<? super ErrVal, ? extends OutErr> transformation);
 
     /**
      * Produces optional-value, that is present when this is a successful result.
      */
-    Optional<R> discardError();
+    Optional<OkVal> discardError();
 
     /**
      * Recovers from error and produces the value of the successful result.
@@ -379,7 +366,8 @@ public sealed interface Result<R, E> {
      * @param transformation transformation that
      *     is applied to error-value to get a successful result value
      */
-    R recoverError(Function<? super E, ? extends R> transformation);
+    OkVal recoverError(Function<? super ErrVal, ? extends OkVal> transformation);
+
 
     /**
      * Throws an exception, by converting error-value to an exception instance.
@@ -387,40 +375,20 @@ public sealed interface Result<R, E> {
      * Returns the value of this result when this is a successful result, or otherwise
      * throws an exception, by creating exception instance from error-value.
      *
-     * @param <X> type of thrown exception
+     * @param <Ex> type of thrown exception
      * @param errorToExceptionConverter function to convert error-value to an exception
      * @return the value of this result, when it is a successful result
-     * @throws X when this is an error result
-     * @deprecated use {@link #orOnErrorThrow(Function)} instead
-     */
-    @Deprecated(forRemoval = true, since = "1.2.0")
-    default <X extends Exception> R throwError(Function<? super E, X> errorToExceptionConverter)
-            throws X {
-        return orOnErrorThrow(errorToExceptionConverter);
-    }
-
-    /**
-     * Throws an exception, by converting error-value to an exception instance.
-     * <p>
-     * Returns the value of this result when this is a successful result, or otherwise
-     * throws an exception, by creating exception instance from error-value.
-     *
-     * @param <X> type of thrown exception
-     * @param errorToExceptionConverter function to convert error-value to an exception
-     * @return the value of this result, when it is a successful result
-     * @throws X when this is an error result
+     * @throws Ex when this is an error result
      * @since 1.2.0
      */
-    default <X extends Exception> R orOnErrorThrow(Function<? super E, X> errorToExceptionConverter)
-            throws X {
+    default <Ex extends Exception> OkVal orElseThrow(Function<? super ErrVal, Ex> errorToExceptionConverter)
+            throws Ex {
         return switch (this) {
-            case Success<R, E> success -> success.result;
-            case Error<R, E> error -> throw errorToExceptionConverter.apply(error.error);
+            case Result.Ok(OkVal ok) -> ok;
+            case Result.Err(ErrVal err) -> throw errorToExceptionConverter.apply(err);
         };
     }
 
-    /** Invokes given consumer for a successful result value. */
-    void ifSuccess(Consumer<R> consumer);
 
     /**
      * Invokes given consumer for an error-value of this result, and returns the same result.
@@ -428,7 +396,7 @@ public sealed interface Result<R, E> {
      * @param consumer consumer to be invoked for an error-value
      * @since 1.1.0
      */
-    Result<R, E> peekError(Consumer<E> consumer);
+    Result<OkVal, ErrVal> ifErr(Consumer<ErrVal> consumer);
 
     /**
      * Invokes given consumer for a success-value of this result, and returns the same result.
@@ -436,7 +404,7 @@ public sealed interface Result<R, E> {
      * @param consumer consumer to be invoked for an success-value
      * @since 1.1.0
      */
-    Result<R, E> peekSuccess(Consumer<R> consumer);
+    Result<OkVal, ErrVal> ifOk(Consumer<OkVal> consumer);
 
     /**
      * Transforms a value of this result, when this is a successful result.
@@ -451,131 +419,119 @@ public sealed interface Result<R, E> {
      *   the result of this method the result of applying transformation to the argument.
      * </ul>
      *
-     * @param <U> new type of successful result value
+     * @param <OutOk> new type of successful result value
      * @param transformation transformation to be applied to values
      */
-    default <U> Result<U, E> flatMap(
-            Function<? super R, ? extends Result<U, E>> transformation
+    default <OutOk> Result<OutOk, ErrVal> flatMap(
+            Function<? super OkVal, ? extends Result<OutOk, ErrVal>> transformation
     ) {
-        Result<? extends Result<U, E>, E> inflated = this.map(transformation);
+        Result<? extends Result<OutOk, ErrVal>, ErrVal> inflated = this.map(transformation);
         return switch (inflated) {
-            case Success<? extends Result<U, E>, E>(var result) -> result;
-            case Error<? extends Result<U, E>, E> error -> error.safeCast();
+            case Result.Ok(var result) -> result;
+            case Result.Err<?, ErrVal> err -> err.safeCast();
         };
     }
 
-    record Success<R, E>(R result) implements Result<R, E> {
+    record Ok<OkVal, ErrVal>(OkVal result) implements Result<OkVal, ErrVal> {
         @Override
-        public <U> Result<U, E> map(
-                Function<? super R, ? extends U> transformation
+        public <U> Result<U, ErrVal> map(
+                Function<? super OkVal, ? extends U> transformation
         ) {
-            return Result.success(transformation.apply(result));
+            return Result.ok(transformation.apply(result));
         }
         @Override
-        public <E1> Result<R, E1> mapError(
-                Function<? super E, ? extends E1> transfiormation
+        public <E1> Result<OkVal, E1> mapError(
+                Function<? super ErrVal, ? extends E1> transformation
         ) {
             return safeCast();
         }
 
         @SuppressWarnings("unchecked")
-        private <E1> Success<R, E1> safeCast() {
-            return (Success<R, E1>) this;
+        private <ErrNever> Result.Ok<OkVal, ErrNever> safeCast() {
+            return (Result.Ok<OkVal, ErrNever>) this;
         }
 
         @Override
-        public <U> Result<U, E> andThen(Result<U, E> result) {
-            return result;
-        }
-
-        @Override
-        public Optional<R> discardError() {
+        public Optional<OkVal> discardError() {
             return Optional.of(result);
         }
 
         @Override
-        public boolean isError() {
+        public boolean isErr() {
             return false;
         }
 
         @Override
-        public R recoverError(
-                Function<? super E, ? extends R> transformation
+        public boolean isOk() { return true; }
+
+        @Override
+        public OkVal recoverError(
+                Function<? super ErrVal, ? extends OkVal> transformation
         ) {
             return result;
         }
 
         @Override
-        public void ifSuccess(Consumer<R> consumer) {
-            consumer.accept(result);
-        }
-
-        @Override
-        public Result<R, E> peekError(Consumer<E> consumer) {
+        public Result<OkVal, ErrVal> ifErr(Consumer<ErrVal> consumer) {
             return this;
         }
 
         @Override
-        public Result<R, E> peekSuccess(Consumer<R> consumer) {
+        public Result<OkVal, ErrVal> ifOk(Consumer<OkVal> consumer) {
             consumer.accept(result);
             return this;
         }
     }
 
-    record Error<R, E>(E error) implements Result<R, E> {
+    record Err<OkVal, ErrVal>(ErrVal error) implements Result<OkVal, ErrVal> {
         @Override
-        public <U> Result<U, E> map(
-                Function<? super R, ? extends U> transformation
+        public <U> Result<U, ErrVal> map(
+                Function<? super OkVal, ? extends U> transformation
         ) {
             return safeCast();
         }
 
         @Override
-        public <E1> Result<R, E1> mapError(
-                Function<? super E, ? extends E1> transformation
+        public <OutErr> Result<OkVal, OutErr> mapError(
+                Function<? super ErrVal, ? extends OutErr> transformation
         ) {
-            return Result.error(transformation.apply(error));
+            return Result.err(transformation.apply(error));
         }
 
         @SuppressWarnings("unchecked")
-        private <R1> Error<R1, E> safeCast() {
-            return (Error<R1, E>) this;
+        private <R1> Result.Err<R1, ErrVal> safeCast() {
+            return (Result.Err<R1, ErrVal>) this;
         }
 
         @Override
-        public <U> Result<U, E> andThen(Result<U, E> result) {
-            return safeCast();
-        }
-
-        @Override
-        public Optional<R> discardError() {
+        public Optional<OkVal> discardError() {
             return Optional.empty();
         }
 
         @Override
-        public boolean isError() {
+        public boolean isErr() {
             return true;
         }
 
         @Override
-        public R recoverError(
-                Function<? super E, ? extends R> transformation
+        public boolean isOk() { return false; }
+
+        @Override
+        public OkVal recoverError(
+                Function<? super ErrVal, ? extends OkVal> transformation
         ) {
             return transformation.apply(error);
         }
 
-        @Override
-        public void ifSuccess(Consumer<R> consumer) {
-        }
 
         @Override
-        public Result<R, E> peekError(Consumer<E> consumer) {
+        public Result<OkVal, ErrVal> ifErr(Consumer<ErrVal> consumer) {
             consumer.accept(error);
             return this;
         }
 
         @Override
-        public Result<R, E> peekSuccess(Consumer<R> consumer) {
+        public Result<OkVal, ErrVal> ifOk(Consumer<OkVal> consumer) {
             return this;
         }
     }

@@ -68,7 +68,7 @@ public final class ResultCollectors {
                 BiConsumer<C, ? super T> accumulator,
                 BinaryOperator<C> combiner
         ) {
-            this.result = Result.success(collection);
+            this.result = Result.ok(collection);
             this.accumulator = accumulator;
             this.combiner = combiner;
         }

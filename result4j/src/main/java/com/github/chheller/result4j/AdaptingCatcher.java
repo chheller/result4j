@@ -289,9 +289,9 @@ public class AdaptingCatcher<S extends Exception, D> {
         ) {
             return (argument) -> {
                 try {
-                    return Result.success(function.apply(argument));
+                    return Result.ok(function.apply(argument));
                 } catch (Exception e) {
-                    return Result.error(adapter.adapt(e));
+                    return Result.err(adapter.adapt(e));
                 }
             };
         }
@@ -359,9 +359,9 @@ public class AdaptingCatcher<S extends Exception, D> {
         ) {
             return (argument1, argument2) -> {
                 try {
-                    return Result.success(function.apply(argument1, argument2));
+                    return Result.ok(function.apply(argument1, argument2));
                 } catch (Exception e) {
-                    return Result.error(adapter.adapt(e));
+                    return Result.err(adapter.adapt(e));
                 }
             };
         }
@@ -427,9 +427,9 @@ public class AdaptingCatcher<S extends Exception, D> {
         ) {
             return () -> {
                 try {
-                    return Result.success(supplier.get());
+                    return Result.ok(supplier.get());
                 } catch (Exception e) {
-                    return Result.error(adapter.adapt(e));
+                    return Result.err(adapter.adapt(e));
                 }
             };
         }
@@ -500,9 +500,9 @@ public class AdaptingCatcher<S extends Exception, D> {
             return (argument) -> {
                 try {
                     consumer.accept(argument);
-                    return Result.success(null);
+                    return Result.ok(null);
                 } catch (Exception e) {
-                    return Result.error(adapter.adapt(e));
+                    return Result.err(adapter.adapt(e));
                 }
             };
         }
@@ -573,9 +573,9 @@ public class AdaptingCatcher<S extends Exception, D> {
             return (argument1, argument2) -> {
                 try {
                     consumer.accept(argument1, argument2);
-                    return Result.success(null);
+                    return Result.ok(null);
                 } catch (Exception e) {
-                    return Result.error(adapter.adapt(e));
+                    return Result.err(adapter.adapt(e));
                 }
             };
         }
@@ -645,9 +645,9 @@ public class AdaptingCatcher<S extends Exception, D> {
             return () -> {
                 try {
                     runnable.run();
-                    return Result.success(null);
+                    return Result.ok(null);
                 } catch (Exception e) {
-                    return Result.error(adapter.adapt(e));
+                    return Result.err(adapter.adapt(e));
                 }
             };
         }

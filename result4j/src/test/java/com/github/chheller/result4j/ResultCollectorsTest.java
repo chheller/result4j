@@ -39,7 +39,7 @@ public class ResultCollectorsTest {
                         .collect(ResultCollectors.toSingleResult(Collectors.toList()));
         Assertions.assertThrows(
                 NumberFormatException.class,
-                () -> result.orOnErrorThrow(Function.identity())
+                () -> result.orElseThrow(Function.identity())
         );
     }
 
@@ -51,7 +51,7 @@ public class ResultCollectorsTest {
                 Stream.of("123", "234", "456")
                         .map(numberFormat.catching(Integer::parseInt))
                         .collect(ResultCollectors.toSingleResult(Collectors.toList()))
-                        .orOnErrorThrow(Function.identity());
+                        .orElseThrow(Function.identity());
         Assertions.assertEquals(List.of(123, 234, 456), result);
     }
 
@@ -65,7 +65,7 @@ public class ResultCollectorsTest {
                         .collect(ResultCollectors.toSingleResult(Collectors.toList()));
         Assertions.assertThrows(
                 RuntimeException.class,
-                () -> result.orOnErrorThrow(Function.identity())
+                () -> result.orElseThrow(Function.identity())
         );
     }
 
@@ -77,7 +77,7 @@ public class ResultCollectorsTest {
                 Stream.of("123", "234", "456")
                         .map(numberFormat.catching(Integer::parseInt))
                         .collect(ResultCollectors.toSingleResult(Collectors.toList()))
-                        .orOnErrorThrow(Function.identity());
+                        .orElseThrow(Function.identity());
         Assertions.assertEquals(List.of(123, 234, 456), result);
     }
 
@@ -93,7 +93,7 @@ public class ResultCollectorsTest {
                         .map(io.catching(Fakes::readFile))
                         .map(Result.flatMapping(ml.catching(Fakes::recognizeImage)))
                         .collect(ResultCollectors.toSingleResult(Collectors.toList()))
-                        .orOnErrorThrow(Function.identity());
+                        .orElseThrow(Function.identity());
         Assertions.assertEquals(List.of(Animal.CAT, Animal.DOG), animals1);
     }
 
@@ -112,7 +112,7 @@ public class ResultCollectorsTest {
         PipelineException exception =
                 Assertions.assertThrows(
                         PipelineException.class,
-                        () -> animals.orOnErrorThrow(Function.identity())
+                        () -> animals.orElseThrow(Function.identity())
                 );
         Assertions.assertInstanceOf(IOException.class, exception.getCause());
     }
@@ -132,7 +132,7 @@ public class ResultCollectorsTest {
         PipelineException exception =
                 Assertions.assertThrows(
                         PipelineException.class,
-                        () -> animals.orOnErrorThrow(Function.identity())
+                        () -> animals.orElseThrow(Function.identity())
                 );
         Assertions.assertInstanceOf(MLException.class, exception.getCause());
     }

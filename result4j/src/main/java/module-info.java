@@ -19,7 +19,7 @@
 
 /**
  * The module provides the definition of the Result-type similar to Result-type in Rust that
- * allows to return either successful result or otherwise some kind of error.
+ * allows to return either successful result or otherwise some kind of err.
  * <p>
  * In Java, the native way of reporting errors are exceptions, either checked or unchecked.
  * You do not need Result-type most of the time in Java-code, where

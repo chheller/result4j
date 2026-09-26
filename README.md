@@ -2,7 +2,7 @@ Result-type for Java
 ====================
 
 The project provides Result-type similar to Result-type in Rust that
-allows to return either successful result or otherwise some kind of error.
+allows to return either successful result or otherwise some kind of err.
 
 In Java, the native way of reporting errors are exceptions, either checked or unchecked.
 You do not need Result-type most of the time in Java-code, where
@@ -13,7 +13,7 @@ Handling exception in such situations can be cumbersome and require a lot of boi
 Result-type and associated helper-classes help with exception handling and
 allow to write idiomatic functional code that can interact with methods that throw exceptions.
 
-Result-type provides a way to pass error information as a first-class value through
+Result-type provides a way to pass err information as a first-class value through
 the code written in functional style.
 Routines are provided for interoperability of normal code that uses exception and
 functional code that uses Result-type, so that exceptions can be caught and propagated as
@@ -54,26 +54,26 @@ Overview
 
 [API Documentation is available for reference](https://www.javadoc.io/doc/com.github.sviperll/result4j).
 
-Result type can be either a successful result or some kind of error.
+Result type can be either a successful result or some kind of err.
 
 ````java
-Result<String, E> suc = Result.success("Hello, World!");
+Result<String, E> suc = Result.ok("Hello, World!");
 ````
 
 The above line declares successful result value.
 
 ````java
-Result<String, Integer> err = Result.error(404);
+Result<String, Integer> err = Result.err(404);
 ````
 
-The above line declares error-value.
+The above line declares err-value.
 
 ````java
 Result<String, Integer> result = ...;
 switch (result) {
     case Result.Success<String, Integer>(String value) -> System.out.println(value);
     case Result.Error<String, Integer>(Integer code) ->
-            throw new IOException("%s: error".formatted(code));
+            throw new IOException("%s: err".formatted(code));
 }
 ````
 
@@ -81,13 +81,13 @@ Pattern matching can be used to check unknown result value as shown above.
 
 ````java
 Result<String, Integer> receivedResult = ...;
-String value = receivedResult.orOnErrorThrow(code -> new IOException("%s: error".formatted(code)));
+String value = receivedResult.orOnErrorThrow(code -> new IOException("%s: err".formatted(code)));
 System.out.println(value);
 ````
 
 Instead of a low-level pattern-matching,
 higher level helper-methods are available in `Result`-class.
-In the snippet above `orOnErrorThrow` is used to throw exception when `Result` contains error.
+In the snippet above `orElseThrow` is used to throw exception when `Result` contains err.
 
 Result-type is created for interoperability between normal Java-code that throws exception and
 more functional code.
@@ -129,7 +129,7 @@ class MyMain {
 
 The example above shows the usage of the `catching` method of the `Catcher` class, that
 allows to adapt exception throwing method and instead to have a method that returns `Result` with
-exception representing as an error-value.
+exception representing as an err-value.
 
 There is also an `AdaptingCatcher` class that allows to adapt or wrap exceptions.
 
@@ -182,7 +182,7 @@ An assertion of a result of a successful operation:
                 .containsExactlyInAnyOrderElementsOf(List.of(456, 234, 123));
 ````
 
-An assertion of an error:
+An assertion of an err:
 
 ````java
         assertThat(result)
